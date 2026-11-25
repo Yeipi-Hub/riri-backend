@@ -20,6 +20,7 @@ import boto3
 import firebase_admin
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
 from firebase_admin import credentials, firestore
+import json
 from google.cloud.firestore_v1 import transactional
 from PIL import Image, ImageOps, UnidentifiedImageError
 
@@ -32,11 +33,14 @@ MAX_STORED_IMAGE_BYTES = 600_000  # margen bajo el límite de 1 MiB por document
 MAX_AVISTAMIENTOS_COMPARE = 300  # límite de seguridad para demo; paginar para producción
 
 if not firebase_admin._apps:
+    raw_creds = os.getenv("FIREBASE_CREDENTIALS")
     service_account = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-    if service_account:
+    if raw_creds:
+        firebase_admin.initialize_app(credentials.Certificate(json.loads(raw_creds)))
+    elif service_account:
         firebase_admin.initialize_app(credentials.Certificate(service_account))
     else:
-        firebase_admin.initialize_app()  # Application Default Credentials
+        firebase_admin.initialize_app()
 
 db = firestore.client()
 rekognition = boto3.client("rekognition", region_name=REGION_NAME)
